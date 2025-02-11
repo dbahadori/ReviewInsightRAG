@@ -1,0 +1,26 @@
+retriever:
+  framework: "langchain"  # or "haystack"
+  params:
+    embedding_model: "sentence-transformers/all-mpnet-base-v2"
+    device: "cuda"  # Use GPU
+
+document_store:
+  type: "faiss"  # Options: "faiss" or "pinecone"
+  params:
+    persistent: true  # Set to true to enable saving/loading the index for FAISS
+    index_path: "data/vector_store.faiss"  # File path for FAISS index storage
+    # Pinecone-specific configuration (only applies if type is "pinecone")
+    api_key: "your_pinecone_api_key"  # Replace with your Pinecone API key
+    index_name: "your_pinecone_index_name"  # Replace with your Pinecone index name
+
+
+llm:
+  provider: "deepseek"  # or "openai"
+  params:
+    api_key: "${sk-60abf91dbc1b4b3991cfa5362f0e4c1b}"
+    model: "deepseek-chat"
+
+scraper:
+  type: "iranhotelonline"  # or "yelp"
+  params:
+    api_key: "your-scraper-api-key"  # Example key for scraper usage

@@ -1,0 +1,13 @@
+name: review_rag
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+# environment.yml (additions)
+dependencies:
+  - python=3.10
+  - faiss-gpu=1.7.3  # GPU-accelerated
+  - pip:
+      - dependency-injector  # For DI container
+      - python-dotenv       # For config
+      - pyyaml              # For YAML configs

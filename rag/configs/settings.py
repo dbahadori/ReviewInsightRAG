@@ -1,24 +1,47 @@
+from pydantic import BaseModel
 from typing import Optional
 
-from pydantic.v1 import BaseSettings
+# Retriever settings
+class RetrieverParams(BaseModel):
+    embedding_model: str
+    device: str
 
+class RetrieverSettings(BaseModel):
+    framework: str
+    params: RetrieverParams
 
-class Settings(BaseSettings):
-    # LLM Configuration
-    llm_api_key: str
-    llm_model: str = "deepseek-chat"  # Default to DeepSeek Chat model
+# Document store settings
+class DocumentStoreParams(BaseModel):
+    persistent: bool
+    index_path: str
+    embedding_model: str
+    api_key: Optional[str] = None  # Only needed for Pinecone
+    index_name: Optional[str] = None  # Only needed for Pinecone
 
-    # Document Store Configuration
-    document_store_type: str = "faiss"
-    document_store_path: str = "data/vector_store.faiss"
+class DocumentStoreSettings(BaseModel):
+    type: str
+    params: DocumentStoreParams
 
-    # Retriever Configuration
-    retriever_framework: str = "langchain"
-    retriever_embedding_model: str = "sentence-transformers/all-mpnet-base-v2"
+# LLM settings
+class LLMParams(BaseModel):
+    api_key: str
+    model: str
 
-    # Scraper Configuration
-    scraper_type: str = "tripadvisor"
-    scraper_api_key: Optional[str] = None
+class LLMSettings(BaseModel):
+    provider: str
+    params: LLMParams
 
-    class Config:
-        env_file = ".env"  # Use environment variables if needed
+# Scraper settings
+class ScraperParams(BaseModel):
+    api_key: str
+
+class ScraperSettings(BaseModel):
+    type: str
+    params: ScraperParams
+
+# Main settings class
+class Settings(BaseModel):
+    retriever: RetrieverSettings
+    document_store: DocumentStoreSettings
+    llm: LLMSettings
+    scraper: ScraperSettings

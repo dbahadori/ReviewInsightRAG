@@ -1,6 +1,6 @@
 from rag.configs.settings import Settings
 from rag.core.container import RAGContainer
-from scripts.formatters.review_formatter import ReviewFormatter
+from ingestion.formatters.review_formatter import ReviewFormatter
 
 # Load settings from the config
 settings = Settings()
@@ -21,7 +21,7 @@ hotel_info = hotel_scraper.scrape()
 formatted_info = ReviewFormatter.format_reviews_for_faiss(hotel_info)
 
 # Add to document store
-document_store.add_documents(hotel_info)
+document_store.add_hotel_documents(hotel_info)
 
 # Retrieve documents
 documents = retriever.retrieve("best food in city")

@@ -30,36 +30,36 @@ class SnappTripScraper:
         """Extracts the relevant information from a single review."""
         try:
             name = review.find_element(By.XPATH,
-                                       ".//div[contains(@class, 'text-caption') and contains(@class, 'xl:text-subtitle-2')]").text.strip()
-            date = review.find_element(By.CLASS_NAME, 'text-on-surface-medium-emphasis').text.strip()
+                                       ".//div[contains(@class, 'text-caption') and contains(@class, 'xl:text-subtitle-2')]").content.strip()
+            date = review.find_element(By.CLASS_NAME, 'text-on-surface-medium-emphasis').content.strip()
             emoji = review.find_element(By.TAG_NAME, 'img').get_attribute('src')  # URL of the emoji image
 
             try:
                 rating = review.find_element(By.XPATH,
-                                             ".//span[contains(@class, 'mini-chips_text__xuhB9') and (contains(text(), '۱') or contains(text(), '۲') or contains(text(), '۳') or contains(text(), '۴') or contains(text(), '۵'))]").text.strip()
+                                             ".//span[contains(@class, 'mini-chips_text__xuhB9') and (contains(text(), '۱') or contains(text(), '۲') or contains(text(), '۳') or contains(text(), '۴') or contains(text(), '۵'))]").content.strip()
             except:
                 rating = "No rating found"
 
             try:
                 room_type = review.find_element(By.XPATH,
-                                                ".//span[contains(@class, 'mini-chips_text__xuhB9') and not(contains(text(), '۱')) and not(contains(text(), '۲')) and not(contains(text(), '۳')) and not(contains(text(), '۴')) and not(contains(text(), '۵'))]").text.strip()
+                                                ".//span[contains(@class, 'mini-chips_text__xuhB9') and not(contains(text(), '۱')) and not(contains(text(), '۲')) and not(contains(text(), '۳')) and not(contains(text(), '۴')) and not(contains(text(), '۵'))]").content.strip()
             except:
                 room_type = "No room type found"
 
             try:
                 main_text = review.find_element(By.XPATH,
-                                                ".//div[@class='text-caption xl:text-body-2' and not(contains(@class, 'flex'))]").text.strip()
+                                                ".//div[@class='text-caption xl:text-body-2' and not(contains(@class, 'flex'))]").content.strip()
             except:
                 main_text = "No main text found"
 
             positive_viewpoints = [
-                p.find_element(By.XPATH, "./div[2]").text.strip()
+                p.find_element(By.XPATH, "./div[2]").content.strip()
                 for p in review.find_elements(By.XPATH,
                                               ".//div[contains(@class, 'text-caption xl:text-body-2 flex') and .//span[contains(@class, 'text-ventures-snapp')]]")
             ]
 
             negative_viewpoints = [
-                n.find_element(By.XPATH, "./div[2]").text.strip()
+                n.find_element(By.XPATH, "./div[2]").content.strip()
                 for n in review.find_elements(By.XPATH,
                                               ".//div[contains(@class, 'text-caption xl:text-body-2 flex') and .//span[contains(@class, 'text-error')]]")
             ]

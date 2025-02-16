@@ -1,12 +1,12 @@
-from rag.core.processor import QueryProcessor
+from rag.core.interfaces import IQueryProcess
 
 
 class ChatInterface:
-    def __init__(self, query_processor: QueryProcessor):
+    def __init__(self, query_processor: IQueryProcess):
         self.query_processor = query_processor
 
-    def submitQuery(self, query: str) -> str:
+    def submit_query(self, query: str) -> str:
         return self.query_processor.process(query)
 
-    def displayResponse(self, response: str):
+    def display_response(self, response: str):
         print(f"Response: {response}")

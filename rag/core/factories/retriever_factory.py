@@ -1,28 +1,22 @@
-from rag.core.haystack_retriever import HaystackRetriever
-from rag.core.interfaces import IRetriever
-from rag.core.lang_chain_retriever import LangChainRetriever
+from rag.core.factories.document_store_factory import DocumentStoreFactory
+from rag.core.interfaces import IRetriever, DocumentType
+from rag.core.retrievers.lang_chain_retriever import LangChainRetriever
 
 
 class RetrieverFactory:
     @staticmethod
-    def create_retriever(config: dict) -> IRetriever:
+    def create_retriever(config: dict, doc_type: DocumentType) -> IRetriever:
         """
-        Creates a retriever instance based on the provided configuration.
-
-        Args:
-            config (dict): Configuration for the retriever (e.g., framework, parameters).
-
-        Returns:
-            IRetriever: An instance of the requested retriever.
+        Creates a basic retriever (e.g. LangChainRetriever) based on the provided configuration.
+        This factory is now independent of domain-specific logic.
         """
-        framework = config.get("framework", "langchain")  # Default to LangChain
+        framework = config.get("framework", "langchain").lower()
         params = config.get("params", {})
-
         if framework == "langchain":
-            return LangChainRetriever(**params)
+            document_store = DocumentStoreFactory.create_store(config.get("document_store"))
+            base_retriever = document_store.get_retriever(doc_type)
+            return LangChainRetriever(base_retriever, params.get("embedding_model", "sentence-transformers/all-mpnet-base-v2"))
         elif framework == "haystack":
-            # Assuming 'document_store' is already created and passed in config
-            document_store = config.get("document_store")  # Document store passed here
-            return HaystackRetriever(embedding_model=params.get("embedding_model"), document_store=document_store)
+            raise NotImplementedError("HaystackRetriever not implemented.")
         else:
             raise ValueError(f"Unsupported retriever framework: {framework}")

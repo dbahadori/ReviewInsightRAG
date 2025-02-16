@@ -7,14 +7,17 @@ from rag.core.interfaces import IDocumentStore, Document
 
 
 class DocumentStore(IDocumentStore):
+
     def __init__(self, config: dict):
-        store_type = config["document_store"]["type"]
         self.store = DocumentStoreFactory.create_store(config)
 
-    def add_documents(self, docs: List[str]):
+    def add_hotel_documents(self, docs: List[Document]):
         # Add documents to the store
-        self.store.add_documents(docs)
+        self.store.add_hotel_documents(docs)
 
-    def search(self, query: str) -> List[Document]:
+    def get_hotel_retriever(self, query: str) -> List[Document]:
         # Search for documents using the vector store
-        return self.store.search(query)
+        return self.store.get_hotel_retriever(query)
+
+    def clear(self) -> None:
+        self.clear()

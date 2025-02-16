@@ -7,6 +7,7 @@ from rag.core.interfaces import IScraper
 from rag.core.scrapers.iranHotel.hotel_list_fetcher import HotelListFetcher
 import re
 
+from rag.core.scrapers.iranHotel.hotel_vote_fetcher import HotelVoteFetcher
 from utils.file_manager import FileManager
 
 
@@ -34,29 +35,21 @@ class IranHotelOnlineScraper(IScraper):
         self.data = None
         self.hotel_name = None
         self.descriptive_info = None
+        self.reviews = None
         self.metadata = None
         self.hotels_info = None
         self.hotel_urls = None
+        self.hotel_fetcher = HotelListFetcher()
+        self.fetcher = HotelVoteFetcher()  # Initialize the vote fetcher
 
     def run(self):
-        hotel_fetcher = HotelListFetcher(letter_limit=30, city_limit=200)
         # hotel_fetcher.run()
-        self.hotel_urls = hotel_fetcher.generate_hotel_summary_urls(from_file=True)
-        return self.scrape(urls=self.hotel_urls)
+        self.hotel_urls = self.hotel_fetcher.generate_hotel_summary_urls(from_file=False)
+        hotel_info_list = self.scrape(urls=self.hotel_urls)
+        self.save_all_info(hotel_info_list)
+        return hotel_info_list
 
-    def get_data(self, from_file=False, file_name='hotels_info.json'):
-        if from_file:
-            data_dir = os.path.join(os.path.dirname(__file__), '../../data/reviews')
-            file_path = os.path.join(data_dir, file_name)
-            file_manager = FileManager(file_path)
-            hotel_info_records = file_manager.load_records()
-        else:
-            if not self.hotels_info:
-                self.run()
-            hotel_info_records = self.hotels_info
-        return hotel_info_records
-
-    def scrape(self, urls: list[str]) -> list[str]:
+    def scrape(self, urls: list[str]) -> list[dict]:
         """
         Scrapes hotel data from multiple URLs, checking for duplicates and saving only unique entries.
         """
@@ -64,7 +57,8 @@ class IranHotelOnlineScraper(IScraper):
             logging.warning("No URLs provided for scraping.")
             return []
 
-        saved_hotels = []  # Stores filenames of saved hotel data
+        hotel_info_list = []
+        hotel_ids = []
 
         for url in urls:
             logging.info(f"Scraping hotel data from: {url}")
@@ -97,12 +91,81 @@ class IranHotelOnlineScraper(IScraper):
             # Extract descriptive information
             self.descriptive_info = self.extract_descriptive_info()
 
-            # Save the hotel data
-            # saved_filename = self.save_info(f'{self.hotel_name}.json', url)
-            saved_filename = self.save_info(f'hotels_info.json')
-            saved_hotels.append(saved_filename)
-            self.hotels_info = saved_hotels
-        return self.hotels_info  # Return the list of successfully saved hotel filenames
+            # Collect hotel IDs for fetching votes
+            hotel_ids.append(self.data.get("HotelId", ""))
+
+            # Combine metadata and descriptive_info for the current hotel
+            hotel_info = {
+                "metadata": self.metadata,
+                "descriptive_info": self.descriptive_info,
+                "reviews": []  # Initialize reviews as an empty list
+            }
+
+            # Append the hotel info to the list
+            hotel_info_list.append(hotel_info)
+
+        # Fetch votes for all hotels outside the loop
+        hotel_votes = self.fetcher.run(hotel_ids)
+
+        # Add votes to the respective hotel's reviews
+        for hotel_info in hotel_info_list:
+            hotel_id = hotel_info["metadata"]["hotel_source_id"]
+            hotel_info["reviews"] = hotel_votes.get(hotel_id, [])
+
+        return hotel_info_list  # Return the list of successfully scraped hotel info
+
+    def save_all_info(self, hotel_info_list: list[dict], filename='hotels_info.json'):
+        """
+        Saves the extracted descriptive hotel information for multiple hotels into a JSON file.
+        Prevents duplicate entries by checking hotel_source_id or (hotel_name and city_name).
+        """
+        logging.info(f"Saving all descriptive hotel information to {filename}...")
+        reviews_dir = os.path.join(os.path.dirname(__file__), '../../data/reviews')
+        os.makedirs(reviews_dir, exist_ok=True)
+        file_path = os.path.join(reviews_dir, filename)
+
+        # Load existing data (if any)
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                try:
+                    existing_data = json.load(f)
+                except json.JSONDecodeError:
+                    existing_data = []
+        else:
+            existing_data = []
+
+        # Check and append unique hotel info
+        for hotel_info in hotel_info_list:
+            metadata = hotel_info.get("metadata", {})
+            is_duplicate = any(
+                (existing_metadata.get("hotel_source_id") == metadata["hotel_source_id"] if existing_metadata.get(
+                    "hotel_source_id") else False) or
+                (existing_metadata.get("hotel_name") == metadata["hotel_name"] and existing_metadata.get("city_name") ==
+                 metadata["city_name"])
+                for existing_hotel in existing_data
+                for existing_metadata in [existing_hotel.get("metadata", {})]
+            )
+            if not is_duplicate:
+                existing_data.append(hotel_info)
+
+        # Save the updated list to the JSON file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(existing_data, f, ensure_ascii=False, indent=4)
+
+        logging.info(f"Descriptive hotel information saved to {file_path}")
+        return existing_data
+
+    def get_data(self, from_file=True, file_name='hotels_info.json'):
+        if from_file:
+            data_dir = os.path.join(os.path.dirname(__file__), '../../data/reviews')
+            file_path = os.path.join(data_dir, file_name)
+            file_manager = FileManager(file_path)
+            hotel_info_records = file_manager.load_records()
+        else:
+            if not self.hotels_info:
+                self.run()
+            hotel_info_records = self.hotels_info
+        return hotel_info_records
 
     def is_duplicate_entry(self, filename) -> bool:
         """
@@ -394,52 +457,6 @@ class IranHotelOnlineScraper(IScraper):
             return f"خیابان‌های نزدیک به  {self.hotel_name} شامل خیابان‌های {streets_text} می‌باشد."
         else:
             return f"هیچ خیابان نزدیکی برای  {self.hotel_name} یافت نشد."
-
-    def save_info(self, filename='hotels_info.json'):
-        """
-        Saves the extracted descriptive hotel information for multiple hotels into a JSON file.
-        Prevents duplicate entries by checking hotel_source_id or (hotel_name and city_name).
-        """
-        logging.info(f"Saving descriptive hotel information to {filename}...")
-        reviews_dir = os.path.join(os.path.dirname(__file__), '../../data/reviews')
-        os.makedirs(reviews_dir, exist_ok=True)
-        file_path = os.path.join(reviews_dir, filename)
-
-        # Combine metadata and descriptive_info for the current hotel
-        hotel_data = {
-            "metadata": self.metadata,
-            "descriptive_info": self.descriptive_info
-        }
-
-        # Load existing data (if any)
-        if os.path.exists(file_path):
-            with open(file_path, 'r', encoding='utf-8') as f:
-                try:
-                    existing_data = json.load(f)
-                except json.JSONDecodeError:
-                    existing_data = []
-        else:
-            existing_data = []
-
-        # Check if a record with the same hotel_source_id or (hotel_name and city_name) already exists
-        for existing_hotel in existing_data:
-            existing_metadata = existing_hotel.get("metadata", {})
-            if (existing_metadata.get("hotel_source_id") and existing_metadata["hotel_source_id"] == self.metadata[
-                "hotel_source_id"]) or \
-                    (existing_metadata.get("hotel_name") == self.metadata["hotel_name"] and existing_metadata.get(
-                        "city_name") == self.metadata["city_name"]):
-                logging.info("Duplicate hotel entry found. Skipping insertion.")
-                return existing_data  # Do not insert duplicate
-
-        # Append the new hotel data
-        existing_data.append(hotel_data)
-
-        # Save the updated list to the JSON file
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(existing_data, f, ensure_ascii=False, indent=4)
-
-        logging.info(f"Descriptive hotel information saved to {file_path}")
-        return existing_data
 
     def extract_city_name(self, url):
         """

@@ -1,5 +1,4 @@
-from rag.core.deepSeek import DeepSeek
-from rag.core.openAI import OpenAI
+from rag.core.llms.deepSeekLLM import DeepSeekLLM
 from rag.core.interfaces import ILLM
 
 class LLMFactory:
@@ -14,13 +13,13 @@ class LLMFactory:
         Returns:
             ILLM: An instance of the requested LLM provider.
         """
-        provider = config.get("provider", "deepseek")  # Default to DeepSeek
+        provider = config.get("provider", "deepseek").lower()
         api_key = config.get("api_key")
-        model = config.get("model", "deepseek-chat")  # Default model
-
+        model = config.get("model", "deepseek-r1:14b")
         if provider == "deepseek":
-            return DeepSeek(api_key=api_key, model=model)
+            return DeepSeekLLM(model_name=model, api_key=api_key)
         elif provider == "openai":
-            return OpenAI(api_key=api_key, model=model)
+            # Return an OpenAI LLM instance if needed.
+            return DeepSeekLLM(model_name=model, api_key=api_key)  # For demonstration.
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")

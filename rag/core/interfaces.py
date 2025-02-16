@@ -1,14 +1,36 @@
 from abc import ABC, abstractmethod
-from typing import List
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import List, Optional, Dict, Any
+
+from langchain_core.retrievers import BaseRetriever
 from pydantic import BaseModel
 
-class Document(BaseModel):
+
+class DocumentType(Enum):
+    HOTEL_INFO = "hotel_info"
+    HOTEL_REVIEW = "hotel_review"
+
+
+class DocumentStoreType(Enum):
+    FAISS = "faiss"
+    PINECONE = "pinecone"
+
+@dataclass
+class Document:
     content: str
-    metadata: dict = {}
+    metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
+
 
 class IScraper(ABC):
     @abstractmethod
     def scrape(self, url: str) -> List[str]:
+        pass
+
+    def run(self) -> List[str]:
+        pass
+
+    def get_data(self, from_file: str, file_name: str) -> List[str]:
         pass
 
 class IRetriever(ABC):
@@ -23,10 +45,30 @@ class ILLM(ABC):
 
 class IDocumentStore(ABC):
     @abstractmethod
-    def add_documents(self, documents: List[str]):
+    def add_documents(self, documents: List[Document], doc_type: DocumentType) -> None:
+        """Add a list of Document objects to the store."""
+        pass
+
+
+    @abstractmethod
+    def clear(self, doc_type: DocumentType) -> None:
+        """Clear the FAISS index (in-memory and disk)."""
         pass
 
     @abstractmethod
-    def search(self, query: str) -> List[Document]:
+    def search(self, query: str, k: int = 5, doc_type: DocumentType = DocumentType.HOTEL_INFO) -> List[Document]:
         pass
 
+    @abstractmethod
+    def get_retriever(self, doc_type: DocumentType) -> BaseRetriever:
+        pass
+
+
+class IDocumentChunker:
+    def chunk_text(self, text: str, metadata: Dict[str, Any] = None) -> List[Document]:
+        pass
+
+
+class IQueryProcess:
+    def process(self, query: str) -> str:
+        pass

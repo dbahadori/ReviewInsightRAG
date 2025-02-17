@@ -16,6 +16,10 @@ class DocumentStoreType(Enum):
     FAISS = "faiss"
     PINECONE = "pinecone"
 
+class RetrieverFrameworkType(Enum):
+    LANGCHAIN = "langchain"
+    HAYSTACK = "haystack"
+
 @dataclass
 class Document:
     content: str
@@ -64,11 +68,21 @@ class IDocumentStore(ABC):
         pass
 
 
-class IDocumentChunker:
+class IDocumentChunker(ABC):
     def chunk_text(self, text: str, metadata: Dict[str, Any] = None) -> List[Document]:
         pass
 
 
-class IQueryProcess:
+class IQueryProcess(ABC):
     def process(self, query: str) -> str:
+        pass
+
+
+class IHashStore(ABC):
+    @abstractmethod
+    def save_hash(self, id: str, hash: str) -> None:
+        pass
+
+    @abstractmethod
+    def load_hash(self, id: str) -> Optional[str]:
         pass

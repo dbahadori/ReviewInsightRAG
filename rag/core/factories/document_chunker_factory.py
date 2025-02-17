@@ -1,4 +1,4 @@
-from rag.core.interfaces import IDocumentChunker
+from rag.core.interfaces import IDocumentChunker, DocumentType
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from rag.data.document_chunker import HotelChunker, ReviewChunker
@@ -6,8 +6,8 @@ from rag.data.document_chunker import HotelChunker, ReviewChunker
 
 class DocumentChunkerFactory:
     @staticmethod
-    def get_chunker(doc_type: str) -> IDocumentChunker:
-        if doc_type.lower() == "hotel":
+    def create_chunker(doc_type: DocumentType = None) -> IDocumentChunker:
+        if doc_type == DocumentType.HOTEL_INFO:
             # Use a Persian-friendly splitter for hotel info.
             splitter = RecursiveCharacterTextSplitter(
                 chunk_size=512,
@@ -15,7 +15,7 @@ class DocumentChunkerFactory:
                 separators=["\n\n", "\n", "،", ".", ";", ":"]
             )
             return HotelChunker(splitter)
-        elif doc_type.lower() == "review":
+        elif doc_type == DocumentType.HOTEL_REVIEW:
             return ReviewChunker()
         else:
             # Default: use the hotel chunker with a default splitter.

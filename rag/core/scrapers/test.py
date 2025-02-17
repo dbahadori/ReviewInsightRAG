@@ -8,6 +8,9 @@ print(f"CUDA Available: {cuda_available}")
 gpu_count = torch.cuda.device_count()
 print(f"GPU Count: {gpu_count}")
 
+print(f"cudnn {torch.backends.cudnn.version()}")
+
+
 # Get the name of the GPU
 if cuda_available:
     for i in range(gpu_count):

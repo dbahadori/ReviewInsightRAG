@@ -3,12 +3,14 @@ import logging
 import os
 from datetime import datetime
 import requests
+
 from rag.core.interfaces import IScraper
 from rag.core.scrapers.iranHotel.hotel_list_fetcher import HotelListFetcher
 import re
 
 from rag.core.scrapers.iranHotel.hotel_vote_fetcher import HotelVoteFetcher
 from utils.file_manager import FileManager
+from utils.path_util import PathUtil
 
 
 def clean_html(raw_html):
@@ -36,8 +38,7 @@ class IranHotelOnlineScraper(IScraper):
         self.hotel_name = None
         self.descriptive_info = None
         self.reviews = None
-        self.metadata = None
-        self.hotels_info = None
+        self.hotel_info_list = []
         self.hotel_urls = None
         self.hotel_fetcher = HotelListFetcher()
         self.fetcher = HotelVoteFetcher()  # Initialize the vote fetcher
@@ -45,9 +46,9 @@ class IranHotelOnlineScraper(IScraper):
     def run(self):
         # hotel_fetcher.run()
         self.hotel_urls = self.hotel_fetcher.generate_hotel_summary_urls(from_file=False)
-        hotel_info_list = self.scrape(urls=self.hotel_urls)
-        self.save_all_info(hotel_info_list)
-        return hotel_info_list
+        self.hotel_info_list = self.scrape(urls=self.hotel_urls)
+        self.save_all_info(self.hotel_info_list)
+        return self.hotel_info_list
 
     def scrape(self, urls: list[str]) -> list[dict]:
         """
@@ -75,7 +76,7 @@ class IranHotelOnlineScraper(IScraper):
             city_name = self.extract_city_name(url) or "نامشخص"
 
             # Create metadata for the current hotel
-            self.metadata = {
+            metadata = {
                 "url": url,
                 "hotel_source_id": self.data.get("HotelId", ""),
                 "hotel_name": self.hotel_name,
@@ -84,7 +85,7 @@ class IranHotelOnlineScraper(IScraper):
             }
 
             # Check for duplicates
-            if self.is_duplicate_entry(f'{self.hotel_name}.json'):
+            if self.is_duplicate_entry(filename=f'{self.hotel_name}.json', metadata=metadata):
                 logging.info(f"Duplicate hotel entry found for {self.hotel_name}. Skipping...")
                 continue  # Skip this hotel and move to the next URL
 
@@ -96,7 +97,7 @@ class IranHotelOnlineScraper(IScraper):
 
             # Combine metadata and descriptive_info for the current hotel
             hotel_info = {
-                "metadata": self.metadata,
+                "metadata": metadata,
                 "descriptive_info": self.descriptive_info,
                 "reviews": []  # Initialize reviews as an empty list
             }
@@ -114,15 +115,13 @@ class IranHotelOnlineScraper(IScraper):
 
         return hotel_info_list  # Return the list of successfully scraped hotel info
 
-    def save_all_info(self, hotel_info_list: list[dict], filename='hotels_info.json'):
+    def save_all_info(self, hotel_info_list: list[dict], file_name='hotels_info.json'):
         """
         Saves the extracted descriptive hotel information for multiple hotels into a JSON file.
         Prevents duplicate entries by checking hotel_source_id or (hotel_name and city_name).
         """
-        logging.info(f"Saving all descriptive hotel information to {filename}...")
-        reviews_dir = os.path.join(os.path.dirname(__file__), '../../data/reviews')
-        os.makedirs(reviews_dir, exist_ok=True)
-        file_path = os.path.join(reviews_dir, filename)
+        logging.info(f"Saving all descriptive hotel information to {file_name}...")
+        file_path = PathUtil.construct_path(PathUtil.get_project_base_path(), 'data', 'hotel', file_name)
 
         # Load existing data (if any)
         if os.path.exists(file_path):
@@ -157,17 +156,16 @@ class IranHotelOnlineScraper(IScraper):
 
     def get_data(self, from_file=True, file_name='hotels_info.json'):
         if from_file:
-            data_dir = os.path.join(os.path.dirname(__file__), '../../data/reviews')
-            file_path = os.path.join(data_dir, file_name)
+            file_path = PathUtil.construct_path(PathUtil.get_project_base_path(), 'data', 'hotel', file_name)
             file_manager = FileManager(file_path)
             hotel_info_records = file_manager.load_records()
         else:
-            if not self.hotels_info:
+            if not self.hotel_info_list:
                 self.run()
-            hotel_info_records = self.hotels_info
+            hotel_info_records = self.hotel_info_list
         return hotel_info_records
 
-    def is_duplicate_entry(self, filename) -> bool:
+    def is_duplicate_entry(self, filename, metadata) -> bool:
         """
         Checks if a record with the same hotel_source_id or (hotel_name and city_name) exists.
         """
@@ -187,10 +185,10 @@ class IranHotelOnlineScraper(IScraper):
         # Check for duplicates
         for existing_hotel in existing_data:
             existing_metadata = existing_hotel.get("metadata", {})
-            if (existing_metadata.get("hotel_source_id") and existing_metadata["hotel_source_id"] == self.metadata[
+            if (existing_metadata.get("hotel_source_id") and existing_metadata["hotel_source_id"] == metadata[
                 "hotel_source_id"]) or \
-                    (existing_metadata.get("hotel_name") == self.metadata["hotel_name"] and existing_metadata.get(
-                        "city_name") == self.metadata["city_name"]):
+                    (existing_metadata.get("hotel_name") == metadata["hotel_name"] and existing_metadata.get(
+                        "city_name") == metadata["city_name"]):
                 return True  # Duplicate found
 
         return False  # No duplicates found

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from typing import List
 
 from selenium import webdriver
 from selenium.common import NoSuchElementException
@@ -11,10 +12,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 import time
+
+from rag.core.interfaces import IScraper
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-class SnappTripScraper:
+class SnappTripScraper(IScraper):
+
     def __init__(self):
         self.driver = self._init_webdriver()
         self.all_reviews = []
@@ -138,10 +143,10 @@ class SnappTripScraper:
 
         return hotels
 
-    def scrap(self, base_url, user_selected_city):
+    def scrape(self, base_url):
         """Main method to scrape reviews."""
         self.base_url = base_url
-        self.user_selected_city = user_selected_city
+        self.user_selected_city = "هتل های تهران"
 
         try:
             cities = self._extract_popular_hotel_cities()
@@ -198,7 +203,6 @@ class SnappTripScraper:
         finally:
             logging.info("Closing WebDriver.")
             self.driver.quit()
-
 
     def save_reviews(self, filename='tehran_hotel_reviews.json'):
         logging.info(f"Saving reviews to {filename}...")
@@ -274,7 +278,7 @@ if __name__ == "__main__":
     def start_scraping():
         # Start scraping reviews for all hotels in the selected city
         while not stop_flag.is_set():
-            scraper.scrap("https://pwa.snapptrip.com", "هتل های تهران")
+            scraper.scrape("https://pwa.snapptrip.com")
             print("Scraping iteration completed.")
 
 

@@ -8,6 +8,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.schema import BaseRetriever
 
 from rag.core.interfaces import DocumentType, IDocumentStore, Document
+from utils.path_util import PathUtil
 
 
 class FAISSStore(IDocumentStore):
@@ -29,8 +30,8 @@ class FAISSStore(IDocumentStore):
 
         # Use separate index paths for each document type.
         self.index_paths = {
-            DocumentType.HOTEL_INFO: self.params.get("hotel_index_path", "faiss_hotel_index"),
-            DocumentType.HOTEL_REVIEW: self.params.get("reviews_index_path", "faiss_reviews_index")
+            DocumentType.HOTEL_INFO: str(PathUtil.construct_path(PathUtil.get_project_base_path(), 'data','embedding_index', 'faiss_hotel_info_index')),
+            DocumentType.HOTEL_REVIEW: str(PathUtil.construct_path(PathUtil.get_project_base_path(), 'data','embedding_index', 'faiss_hotel_review_index'))
         }
         self.embeddings = HuggingFaceEmbeddings(model_name=self.embedding_model)
         # Create a FAISS vectorstore per document type.
@@ -62,13 +63,14 @@ class FAISSStore(IDocumentStore):
         """
         Add a list of Document objects to the FAISS store for the given document type.
         """
-        vectorstore = self.vectorstores[doc_type]
-        texts = [doc.content for doc in docs]
-        metadatas = [doc.metadata for doc in docs]
-        # FAISS.add_texts will generate embeddings internally using self.embeddings.
-        vectorstore.add_texts(texts, metadatas=metadatas)
-        if self.persistent:
-            self.save(doc_type)
+        if docs:
+            vectorstore = self.vectorstores[doc_type]
+            texts = [doc.content for doc in docs]
+            metadatas = [doc.metadata for doc in docs]
+            # FAISS.add_texts will generate embeddings internally using self.embeddings.
+            vectorstore.add_texts(texts, metadatas=metadatas)
+            if self.persistent:
+                self.save(doc_type)
 
     def save(self, doc_type: DocumentType) -> None:
         """Save the FAISS index for the specified document type to disk."""

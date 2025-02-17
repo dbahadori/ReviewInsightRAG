@@ -9,11 +9,12 @@ class RetrieverParams(BaseModel):
 class RetrieverSettings(BaseModel):
     framework: str
     params: RetrieverParams
+    document_store: 'DocumentStoreSettings'  # Nested document store settings
 
 # Document store settings
 class DocumentStoreParams(BaseModel):
     persistent: bool
-    index_path: str
+    index_path: Optional[str] = None
     embedding_model: str
     api_key: Optional[str] = None  # Only needed for Pinecone
     index_name: Optional[str] = None  # Only needed for Pinecone
@@ -39,9 +40,17 @@ class ScraperSettings(BaseModel):
     type: str
     params: ScraperParams
 
+# Hash store settings
+class HashStoreParams(BaseModel):
+    db_path: str
+
+class HashStoreSettings(BaseModel):
+    type: str
+    params: HashStoreParams
+
 # Main settings class
 class Settings(BaseModel):
     retriever: RetrieverSettings
-    document_store: DocumentStoreSettings
     llm: LLMSettings
     scraper: ScraperSettings
+    hash_store: HashStoreSettings

@@ -2,6 +2,7 @@
 import logging
 from rag.configs.config_loader import ConfigLoader
 from rag.core.container import RAGContainer
+from rag.core.interfaces import DocumentType
 from scripts.ingest_data import MainIngestionProcess
 from ui.gradio_app import launch_gradio_ui
 
@@ -19,7 +20,12 @@ def main():
     ingestion.ingest()
 
     # Launch the Gradio chat UI.
-    launch_gradio_ui(container.config.retriever(), container.config.llm())
+    document_store = container.document_store()
+
+    hotel_retriever = container.retriever(document_store=document_store, doc_type=DocumentType.HOTEL_INFO)
+    review_retriever = container.retriever(document_store=document_store, doc_type=DocumentType.HOTEL_REVIEW)
+    llm =  container.llm()
+    launch_gradio_ui(hotel_retriever=hotel_retriever, review_retriever=review_retriever, llm=llm)
 
 
 if __name__ == "__main__":

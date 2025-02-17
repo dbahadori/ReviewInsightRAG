@@ -4,7 +4,10 @@ import os
 import requests
 
 from utils.file_manager import FileManager
+from utils.path_util import PathUtil
 
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class HotelVoteFetcher:
     def __init__(self, base_url: str="https://www.iranhotelonline.com/api/mvc/v1/vote/GetVotes"):
@@ -24,10 +27,12 @@ class HotelVoteFetcher:
         :return: JSON response containing votes and total count.
         """
         url = f"{self.base_url}?hotelId={hotel_id}&pageIndex={page_index}&pageSize={page_size}"
+        logging.info(f"Fetching votes for hotel {hotel_id}, page {page_index}")
         response = requests.get(url)
         if response.status_code == 200:
             return response.json()
         else:
+            logging.error(f"Failed to fetch data for hotel {hotel_id}: {response.status_code}")
             raise Exception(f"Failed to fetch data for hotel {hotel_id}: {response.status_code}")
 
     def fetch_all_votes(self, hotel_id, page_size=50):
@@ -70,6 +75,7 @@ class HotelVoteFetcher:
 
             # Check if we've fetched all pages
             total_count = data.get("count", 0)
+            logging.info(f"Total votes: {total_count}, Fetched votes: {len(all_votes)} for hotel {hotel_id}")
             if len(all_votes) >= total_count:
                 break
 
@@ -89,25 +95,22 @@ class HotelVoteFetcher:
             try:
                 votes = self.fetch_all_votes(hotel_id, page_size)
                 self.hotel_votes[hotel_id] = votes  # Correctly populate hotel_votes dictionary
-                print(f"Fetched {len(votes)} votes for hotel {hotel_id}")
+                logging.info(f"Fetched {len(votes)} votes for hotel {hotel_id}")
             except Exception as e:
-                print(f"Error fetching votes for hotel {hotel_id}: {e}")
+                logging.error(f"Error fetching votes for hotel {hotel_id}: {e}")
 
         updated_fetched_date = self.save_votes()
-        print("Hotel votes records have been saved to 'hotel_votes.json'.")
+        logging.info("Hotel votes records have been saved to 'hotel_votes.json'.")
         return updated_fetched_date
 
-    def save_votes(self, filename='hotel_votes.json'):
+    def save_votes(self, file_name='hotel_votes.json'):
         """
         Save the fetched votes to a JSON file.
         Prevents duplicate entries by checking the arrivalDate and guestName.
-        :param filename: Name of the file to save the votes.
+        :param file_name: Name of the file to save the votes.
         """
-        print(f"Saving hotel votes to {filename}...")
-        data_dir = os.path.join(os.path.dirname(__file__), '../../data/reviews')
-        os.makedirs(data_dir, exist_ok=True)
-        file_path = os.path.join(data_dir, filename)
-
+        logging.info(f"Saving hotel votes to {file_name}...")
+        file_path = PathUtil.construct_path(PathUtil.get_project_base_path(), 'data','hotel', file_name)
         # Load existing data (if any)
         if os.path.exists(file_path):
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -140,14 +143,12 @@ class HotelVoteFetcher:
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(new_data, f, ensure_ascii=False, indent=4)
 
-        print(f"Hotel votes saved to {file_path}")
+        logging.info(f"Hotel votes saved to {file_path}")
         return new_data
 
-    def get_hotel_votes(self,  hotel_ids, page_size=50, from_file=True, file_name="hotel_votes.json"):
-
+    def get_hotel_votes(self, hotel_ids, page_size=50, from_file=True, file_name="hotel_votes.json"):
         if from_file:
-            data_dir = os.path.join(os.path.dirname(__file__), '../../data/reviews')
-            file_path = os.path.join(data_dir, file_name)
+            file_path = PathUtil.construct_path(PathUtil.get_project_base_path(), 'data', 'hotel', file_name)
             file_manager = FileManager(file_path)
             hotel_votes_records = file_manager.load_records()
         else:
@@ -167,7 +168,6 @@ if __name__ == "__main__":
     # Fetch votes for all hotels
     hotel_votes = fetcher.get_hotel_votes(hotel_ids)
 
-
     # Print the results
     for hotel_id, votes in hotel_votes.items():
-        print(f"Hotel {hotel_id} has {len(votes)} votes.")
+        logging.info(f"Hotel {hotel_id} has {len(votes)} votes.")

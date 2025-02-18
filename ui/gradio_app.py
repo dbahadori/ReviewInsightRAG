@@ -23,4 +23,4 @@ def launch_gradio_ui(hotel_retriever: IRetriever, review_retriever: IRetriever, 
         query_input = gr.Textbox(label="Enter your query")
         output = gr.Textbox(label="Response")
         query_input.submit(fn=respond, inputs=query_input, outputs=output)
-    demo.launch()
+    demo.launch(share=True)

@@ -27,6 +27,10 @@ class DocumentStoreSettings(BaseModel):
 class LLMParams(BaseModel):
     api_key: str
     model: str
+    mode: str
+    temperature: float
+    max_tokens: int
+    stream: bool
 
 class LLMSettings(BaseModel):
     provider: str

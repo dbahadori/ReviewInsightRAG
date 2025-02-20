@@ -1,13 +1,13 @@
 retriever:
   framework: "langchain"  # or "haystack"
   params:
-    embedding_model: "sentence-transformers/all-mpnet-base-v2"
+    embedding_model: "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
     device: "cuda"  # Use GPU
   document_store:
-    type: "faiss"  # Options: "faiss" or "pinecone"
+    type: "faiss"  # Options: "faiss" or "pinecone" or "elasticsearch"
     params:
       persistent: true  # Set to true to enable saving/loading the index for FAISS
-      embedding_model: "sentence-transformers/all-mpnet-base-v2"
+      embedding_model: "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
       # Pinecone-specific configuration (only applies if type is "pinecone")
       api_key: "your_pinecone_api_key"  # Replace with your Pinecone API key
       index_name: "your_pinecone_index_name"  # Replace with your Pinecone index name

@@ -9,14 +9,16 @@ config_loader = ConfigLoader()  # defaults to 'rag_config.yaml'
 container = RAGContainer.create(config_loader)
 document_store = container.document_store()
 
+
 hotel_retriever = container.retriever(document_store=document_store, doc_type=DocumentType.HOTEL_INFO)
-query = "هتل هما "
+query = "هتل چمران شیراز "
 logging.info(f"Retrieving documents for query: {query}")
-hotel_docs = hotel_retriever.retrieve(query=query)
+# hotel_docs = hotel_retriever.retrieve(query=query)
+hotel_docs = document_store.search(doc_type=DocumentType.HOTEL_INFO,query=query,k=5)
 logging.info(f"Retrieved {len(hotel_docs)} hotel documents")
 for hotel in hotel_docs:
     hotel_id = hotel.metadata.get('hotel_source_id')
     hotel_name = hotel.metadata.get('hotel_name')
     hotel_city = hotel.metadata.get('city_name')
-    logging.info(f"Hotel Document - ID: {hotel_id}, Name: {hotel_name}, City: {hotel_city}, content: {hotel.content}")
+    logging.info(f"\n\n Hotel Document - ID: {hotel_id}, Name: {hotel_name}, City: {hotel_city}, content: {hotel.content}")
 

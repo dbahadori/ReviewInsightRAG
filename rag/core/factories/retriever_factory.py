@@ -18,7 +18,7 @@ class RetrieverFactory:
         if framework == RetrieverFrameworkType.LANGCHAIN:
             base_retriever = document_store.get_retriever(doc_type)
             return LangChainRetriever(base_retriever,
-                                      params.get("embedding_model", "sentence-transformers/all-mpnet-base-v2"))
+                                      params.get("embedding_model", "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"))
         elif framework == RetrieverFrameworkType.HAYSTACK:
             raise NotImplementedError("HaystackRetriever not implemented.")
         else:

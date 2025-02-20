@@ -12,9 +12,20 @@ class DocumentType(Enum):
     HOTEL_REVIEW = "hotel_review"
 
 
+from enum import Enum
+
 class DocumentStoreType(Enum):
     FAISS = "faiss"
     PINECONE = "pinecone"
+    ELASTICSEARCH = "elasticsearch"
+    MILVUS = "milvus"
+    WEAVIATE = "weaviate"
+    QDRANT = "qdrant"
+    OPENSEARCH = "opensearch"
+
+class HashStoreType(Enum):
+    SQLITE = "sqlite"
+
 
 class RetrieverFrameworkType(Enum):
     LANGCHAIN = "langchain"
@@ -65,6 +76,10 @@ class IDocumentStore(ABC):
 
     @abstractmethod
     def get_retriever(self, doc_type: DocumentType) -> BaseRetriever:
+        pass
+
+    @abstractmethod
+    def get_type(self) -> DocumentStoreType:
         pass
 
 

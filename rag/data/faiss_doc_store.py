@@ -7,7 +7,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.schema import BaseRetriever
 
-from rag.core.interfaces import DocumentType, IDocumentStore, Document
+from rag.core.interfaces import DocumentType, IDocumentStore, Document, DocumentStoreType
 from utils.path_util import PathUtil
 
 
@@ -24,7 +24,7 @@ class FAISSStore(IDocumentStore):
         """
         self.config = config
         self.params = config.get("params", {})
-        self.embedding_model = self.params.get("embedding_model", "sentence-transformers/all-mpnet-base-v2")
+        self.embedding_model = self.params.get("embedding_model", "paraphrase-multilingual-mpnet-base-v2")
         self.persistent = self.params.get("persistent", True)
 
 
@@ -89,7 +89,7 @@ class FAISSStore(IDocumentStore):
     def get_retriever(self, doc_type: DocumentType) -> BaseRetriever:
         """Return a retriever instance for the specified document type."""
         vectorstore = self.vectorstores[doc_type]
-        return vectorstore.as_retriever()
+        return vectorstore.as_retriever(search_kwargs={"k": 10, "distance_metric": "cosine"})
 
     def clear(self, doc_type: DocumentType) -> None:
         """Clear the FAISS index for the specified document type (in-memory and on disk)."""
@@ -98,3 +98,6 @@ class FAISSStore(IDocumentStore):
         if self.persistent and os.path.exists(index_path):
             os.remove(index_path)
             logging.info(f"Index file {index_path} deleted.")
+
+    def get_type(self) -> DocumentStoreType:
+        return DocumentStoreType.FAISS

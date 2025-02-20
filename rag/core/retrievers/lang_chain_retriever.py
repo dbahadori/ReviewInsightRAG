@@ -6,7 +6,7 @@ from rag.core.interfaces import IRetriever, Document
 
 
 class LangChainRetriever(IRetriever):
-    def __init__(self, retriever: BaseRetriever, embedding_model: str = "sentence-transformers/all-mpnet-base-v2"):
+    def __init__(self, retriever: BaseRetriever, embedding_model: str = "paraphrase-multilingual-mpnet-base-v2"):
         self.embeddings = HuggingFaceEmbeddings(model_name=embedding_model)
         self.retriever = retriever
 
